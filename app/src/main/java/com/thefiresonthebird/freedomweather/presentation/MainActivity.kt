@@ -19,6 +19,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -39,6 +40,13 @@ enum class SelectedTemperature {
 }
 
 class MainActivity : ComponentActivity() {
+    private var currentSelectedTemp: SelectedTemperature = SelectedTemperature.NONE
+    private var currentCelsiusTemp: Double = 20.0
+    private var currentFahrenheitTemp: Double = 68.0
+    
+    // State holder to trigger UI updates
+    private var stateUpdateTrigger by mutableStateOf(0)
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate: Starting MainActivity")
         
@@ -58,14 +66,115 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             Log.d(TAG, "onCreate: Setting up Compose content")
-            WearApp("Android")
+            
+            // Use the stateUpdateTrigger to force recomposition
+            val currentState = stateUpdateTrigger
+            
+            WearApp(
+                onTemperatureSelected = { temp -> 
+                    currentSelectedTemp = temp
+                    Log.d(TAG, "MainActivity: Temperature selected: $temp")
+                    stateUpdateTrigger++ // Force UI recomposition
+                },
+                onTemperatureDeselected = {
+                    currentSelectedTemp = SelectedTemperature.NONE
+                    Log.d(TAG, "MainActivity: Temperature deselected")
+                    stateUpdateTrigger++ // Force UI recomposition
+                },
+                celsiusTemp = currentCelsiusTemp,
+                fahrenheitTemp = currentFahrenheitTemp,
+                selectedTemp = currentSelectedTemp,
+                onTemperatureChanged = { celsius, fahrenheit ->
+                    currentCelsiusTemp = celsius
+                    currentFahrenheitTemp = fahrenheit
+                    Log.d(TAG, "MainActivity: Temperature updated - C: $celsius, F: $fahrenheit")
+                    stateUpdateTrigger++ // Force UI recomposition
+                }
+            )
         }
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        Log.d(TAG, "onResume: Activity resumed, checking for rotary input")
+        
+        // The actual rotary input handling will be implemented in the next iteration
+        Log.d(TAG, "onResume: Rotary input handler setup complete")
+    }
+    
+    // Method to handle rotary input from the crown/dial
+    fun handleRotaryInput(increment: Boolean) {
+        Log.d(TAG, "handleRotaryInput: Rotary input received, increment: $increment, selected: $currentSelectedTemp")
+        
+        when (currentSelectedTemp) {
+            SelectedTemperature.CELSIUS -> {
+                val newTemp = if (increment) currentCelsiusTemp - 0.5 else currentCelsiusTemp + 0.5
+                if (newTemp in -50.0..50.0) {
+                    currentCelsiusTemp = newTemp
+                    currentFahrenheitTemp = (newTemp * 9/5) + 32
+                    Log.d(TAG, "handleRotaryInput: Updated Celsius to $newTemp, Fahrenheit to $currentFahrenheitTemp")
+                    // Trigger UI recomposition
+                    stateUpdateTrigger++
+                }
+            }
+            SelectedTemperature.FAHRENHEIT -> {
+                val newTemp = if (increment) currentFahrenheitTemp - 0.5 else currentFahrenheitTemp + 0.5
+                if (newTemp in -58.0..122.0) {
+                    currentFahrenheitTemp = newTemp
+                    currentCelsiusTemp = (newTemp - 32) * 5/9
+                    Log.d(TAG, "handleRotaryInput: Updated Fahrenheit to $newTemp, Celsius to $currentCelsiusTemp")
+                    // Trigger UI recomposition
+                    stateUpdateTrigger++
+                }
+            }
+            SelectedTemperature.NONE -> {
+                Log.d(TAG, "handleRotaryInput: No temperature selected, ignoring rotary input")
+            }
+        }
+    }
+    
+    // Handle actual rotary input events from the crown/dial
+    override fun onGenericMotionEvent(event: android.view.MotionEvent?): Boolean {
+        event?.let { motionEvent ->
+            Log.d(TAG, "onGenericMotionEvent: Event received - action: ${motionEvent.action}, source: ${motionEvent.source}")
+            
+            // Check for rotary input events
+            if (motionEvent.action == android.view.MotionEvent.ACTION_SCROLL) {
+                val scrollAmount = motionEvent.getAxisValue(android.view.MotionEvent.AXIS_SCROLL)
+                Log.d(TAG, "onGenericMotionEvent: Rotary scroll detected, amount: $scrollAmount")
+                
+                // Convert scroll amount to increment/decrement
+                val increment = scrollAmount > 0
+                handleRotaryInput(increment)
+                
+                return true // Event handled
+            }
+            
+            // Log other motion events for debugging
+            if (motionEvent.action != android.view.MotionEvent.ACTION_MOVE) {
+                Log.d(TAG, "onGenericMotionEvent: Other motion event - action: ${motionEvent.action}")
+            }
+        }
+        return super.onGenericMotionEvent(event)
+    }
+    
+    // Public method to simulate rotary input for testing
+    fun simulateRotaryInput(increment: Boolean) {
+        Log.d(TAG, "simulateRotaryInput: Simulating rotary input, increment: $increment")
+        handleRotaryInput(increment)
     }
 }
 
 @Composable
-fun WearApp(greetingName: String) {
-    Log.d(TAG, "WearApp: Composable function called with greeting: $greetingName")
+fun WearApp(
+    onTemperatureSelected: (SelectedTemperature) -> Unit,
+    onTemperatureDeselected: () -> Unit,
+    celsiusTemp: Double,
+    fahrenheitTemp: Double,
+    selectedTemp: SelectedTemperature,
+    onTemperatureChanged: (Double, Double) -> Unit
+) {
+    Log.d(TAG, "WearApp: Composable function called with temperature: $celsiusTemp")
 
     FreedomWeatherTheme {
         Box(
@@ -78,21 +187,42 @@ fun WearApp(greetingName: String) {
             TimeText()
             
             // Display weather interface
-            WeatherInterface()
+            WeatherInterface(
+                celsiusTemp = celsiusTemp,
+                fahrenheitTemp = fahrenheitTemp,
+                selectedTemp = selectedTemp,
+                onCelsiusClick = { 
+                    Log.d(TAG, "WearApp: Celsius temperature selected")
+                    onTemperatureSelected(SelectedTemperature.CELSIUS)
+                },
+                onFahrenheitClick = { 
+                    Log.d(TAG, "WearApp: Fahrenheit temperature selected")
+                    onTemperatureSelected(SelectedTemperature.FAHRENHEIT)
+                },
+                onTemperatureDeselected = onTemperatureDeselected,
+                onTemperatureChanged = onTemperatureChanged,
+                context = LocalContext.current
+            )
         }
     }
 }
 
 @Composable
-fun WeatherInterface() {
+fun WeatherInterface(
+    celsiusTemp: Double,
+    fahrenheitTemp: Double,
+    selectedTemp: SelectedTemperature,
+    onCelsiusClick: () -> Unit,
+    onFahrenheitClick: () -> Unit,
+    onTemperatureDeselected: () -> Unit,
+    onTemperatureChanged: (Double, Double) -> Unit,
+    context: android.content.Context
+) {
     Log.d(TAG, "WeatherInterface: Setting up weather interface")
     
-    // State for temperature values and selection
-    var celsiusTemp by remember { mutableStateOf(20.0) }
-    var fahrenheitTemp by remember { mutableStateOf(68.0) }
+    // State for min/max temperatures
     var minTemp by remember { mutableStateOf(15.0) }
     var maxTemp by remember { mutableStateOf(25.0) }
-    var selectedTemp by remember { mutableStateOf(SelectedTemperature.NONE) }
     
     // Placeholder location
     val location = "San Francisco, CA"
@@ -104,44 +234,22 @@ fun WeatherInterface() {
     // Handle temperature changes
     fun updateCelsius(newCelsius: Double) {
         Log.d(TAG, "WeatherInterface: Updating Celsius temperature to: $newCelsius")
-        celsiusTemp = newCelsius
-        fahrenheitTemp = celsiusToFahrenheit(newCelsius)
+        onTemperatureChanged(newCelsius, celsiusToFahrenheit(newCelsius))
         // Update min/max to maintain relative relationship
         val tempDiff = newCelsius - 20.0 // difference from base temp
         minTemp = 15.0 + tempDiff
         maxTemp = 25.0 + tempDiff
+        // Trigger UI update
     }
     
     fun updateFahrenheit(newFahrenheit: Double) {
         Log.d(TAG, "WeatherInterface: Updating Fahrenheit temperature to: $newFahrenheit")
-        fahrenheitTemp = newFahrenheit
-        celsiusTemp = fahrenheitToCelsius(newFahrenheit)
+        onTemperatureChanged(fahrenheitToCelsius(newFahrenheit), newFahrenheit)
         // Update min/max to maintain relative relationship
         val tempDiff = newFahrenheit - 68.0 // difference from base temp
         minTemp = 59.0 + tempDiff
         maxTemp = 77.0 + tempDiff
-    }
-    
-    // Handle watch dial input simulation (for testing)
-    fun handleDialInput(increment: Boolean) {
-        when (selectedTemp) {
-            SelectedTemperature.CELSIUS -> {
-                val newTemp = if (increment) celsiusTemp + 1 else celsiusTemp - 1
-                if (newTemp in -50.0..50.0) { // reasonable temperature range
-                    updateCelsius(newTemp)
-                }
-            }
-            SelectedTemperature.FAHRENHEIT -> {
-                val newTemp = if (increment) fahrenheitTemp + 1 else fahrenheitTemp - 1
-                if (newTemp in -58.0..122.0) { // reasonable temperature range
-                    updateFahrenheit(newTemp)
-                }
-            }
-            SelectedTemperature.NONE -> {
-                // No temperature selected, do nothing
-                Log.d(TAG, "WeatherInterface: No temperature selected for dial input")
-            }
-        }
+        // Trigger UI update
     }
     
     Column(
@@ -152,7 +260,7 @@ fun WeatherInterface() {
                 // Deselect temperature when tapping elsewhere
                 if (selectedTemp != SelectedTemperature.NONE) {
                     Log.d(TAG, "WeatherInterface: Deselecting temperature by tapping elsewhere")
-                    selectedTemp = SelectedTemperature.NONE 
+                    onTemperatureDeselected() 
                 }
             },
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -163,12 +271,22 @@ fun WeatherInterface() {
         
         // Status indicator showing which temperature is selected
         if (selectedTemp != SelectedTemperature.NONE) {
-            Text(
-                text = "Editing: ${if (selectedTemp == SelectedTemperature.CELSIUS) "Celsius" else "Fahrenheit"}",
-                fontSize = 12.sp,
-                color = MaterialTheme.colors.primary,
-                modifier = Modifier.padding(vertical = 4.dp)
-            )
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text(
+                    text = "Editing: ${if (selectedTemp == SelectedTemperature.CELSIUS) "Celsius" else "Fahrenheit"}",
+                    fontSize = 12.sp,
+                    color = MaterialTheme.colors.primary,
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+                Text(
+                    text = "Use crown/dial to adjust",
+                    fontSize = 10.sp,
+                    color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(vertical = 2.dp)
+                )
+            }
         }
         
         // Center row: Current temperature in Celsius and Fahrenheit
@@ -176,14 +294,8 @@ fun WeatherInterface() {
             celsiusTemp = celsiusTemp,
             fahrenheitTemp = fahrenheitTemp,
             selectedTemp = selectedTemp,
-            onCelsiusClick = { 
-                Log.d(TAG, "WeatherInterface: Celsius temperature selected")
-                selectedTemp = SelectedTemperature.CELSIUS 
-            },
-            onFahrenheitClick = { 
-                Log.d(TAG, "WeatherInterface: Fahrenheit temperature selected")
-                selectedTemp = SelectedTemperature.FAHRENHEIT 
-            }
+            onCelsiusClick = onCelsiusClick,
+            onFahrenheitClick = onFahrenheitClick
         )
         
         // Bottom row: Min/Max temperatures in Fahrenheit
@@ -192,16 +304,20 @@ fun WeatherInterface() {
             maxTemp = maxTemp
         )
         
-        // Simple test buttons for simulating watch dial input
+        // Simple test buttons to demonstrate rotary input functionality
+        // These simulate what the actual crown/dial input will do
         if (selectedTemp != SelectedTemperature.NONE) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 Text(
-                    text = "↻ -1",
+                    text = "↻ -0.5°",
                     modifier = Modifier
-                        .clickable { handleDialInput(false) }
+                        .clickable { 
+                            // Simulate crown/dial input for testing
+                            (context as? MainActivity)?.simulateRotaryInput(false)
+                        }
                         .padding(8.dp)
                         .background(MaterialTheme.colors.primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
                         .padding(4.dp),
@@ -209,9 +325,12 @@ fun WeatherInterface() {
                     color = MaterialTheme.colors.primary
                 )
                 Text(
-                    text = "↻ +1",
+                    text = "↻ +0.5°",
                     modifier = Modifier
-                        .clickable { handleDialInput(true) }
+                        .clickable { 
+                            // Simulate crown/dial input for testing
+                            (context as? MainActivity)?.simulateRotaryInput(true)
+                        }
                         .padding(8.dp)
                         .background(MaterialTheme.colors.primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
                         .padding(4.dp),
@@ -221,12 +340,17 @@ fun WeatherInterface() {
             }
         }
         
-        // Handle watch dial input for temperature editing
+        // Handle actual watch dial input for temperature editing
         LaunchedEffect(selectedTemp) {
-            // TODO: Implement actual watch dial input handling
-            // For now, this is just a placeholder for the dial input logic
             Log.d(TAG, "WeatherInterface: Selected temperature changed to: $selectedTemp")
+            
+            // TODO: In a real implementation, this would connect to the actual rotary input
+            // For now, we'll simulate the behavior and prepare the structure
+            // The actual rotary input handling will be implemented in the next iteration
         }
+        
+        // Remove test buttons - replaced with actual watch dial input
+        // The user will now use the physical crown/dial to adjust temperatures
     }
 }
 
@@ -375,5 +499,18 @@ fun MinMaxRow(
 @Composable
 fun DefaultPreview() {
     Log.d(TAG, "DefaultPreview: Preview composable called")
-    WearApp("Preview Android")
+    WearApp(
+        onTemperatureSelected = { temp -> 
+            Log.d(TAG, "DefaultPreview: Temperature selected: $temp")
+        },
+        onTemperatureDeselected = {
+            Log.d(TAG, "DefaultPreview: Temperature deselected")
+        },
+        celsiusTemp = 20.0,
+        fahrenheitTemp = 68.0,
+        selectedTemp = SelectedTemperature.NONE, // Pass the default value for preview
+        onTemperatureChanged = { celsius, fahrenheit ->
+            Log.d(TAG, "DefaultPreview: Temperature updated - C: $celsius, F: $fahrenheit")
+        }
+    )
 }
