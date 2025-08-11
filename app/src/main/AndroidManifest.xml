@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
-    <uses-permission android:name="android.permission.WAKE_LOCK" />
-
+    <!-- WearOS specific feature declaration -->
     <uses-feature android:name="android.hardware.type.watch" />
+
+    <!-- Required permissions for WearOS -->
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"
@@ -11,17 +14,34 @@
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@android:style/Theme.DeviceDefault">
+
+        <!-- WearOS library declarations -->
         <uses-library
             android:name="com.google.android.wearable"
             android:required="true" />
+        <uses-library
+            android:name="wear-sdk"
+            android:required="false" />
 
-        <!--
-               Set to true if your app is Standalone, that is, it does not require the handheld
-               app to run.
-        -->
+        <!-- Standalone WearOS app configuration -->
         <meta-data
             android:name="com.google.android.wearable.standalone"
             android:value="true" />
+
+        <!-- Tile service for quick access -->
+        <service
+            android:name=".tile.FreedomWeatherTile"
+            android:exported="true"
+            android:label="@string/tile_label"
+            android:permission="com.google.android.wearable.permission.BIND_TILE_PROVIDER">
+            <intent-filter>
+                <action android:name="androidx.wear.tiles.action.BIND_TILE_PROVIDER" />
+            </intent-filter>
+
+            <meta-data
+                android:name="androidx.wear.tiles.PREVIEW"
+                android:resource="@drawable/tile_preview" />
+        </service>
 
         <activity
             android:name=".presentation.MainActivity"
