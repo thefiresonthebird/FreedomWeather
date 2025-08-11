@@ -1,0 +1,44 @@
+# Important rules you HAVE TO FOLLOW
+- Always add debug logs & comments in the code for easier debug & readability.
+- Every time you choose to apply a rule, explicitly state the rule in the output. You can abbreviate the rule description to a single word or phrase.
+- Do not make changes before verifying that what you are intending to do is what I intend, ask me questions before implementing changes.
+
+# Project structure
+- All files go in /TESTONE
+- This is an Android project, specifically a WearOS project written in Kotlin
+- Manage the porject structure to match a project written in Android Studio
+
+# Tech Stack
+- Android
+- Kotlin
+- WearOS
+
+# General Coding Rules
+- Always prefer simple solutions
+- Avoid duplication of code whenever possible, which means checking for other areas of the codebase that might already have similar code and functionality
+- You are careful to only make changes that are requested or you are confident are well understood and related to the change being requested
+- When fixing an issue or bug, do not introduce a new pattern or technology without first exhausting all options for the existing implementation. And if you finally do this, make sure to remove the old implementation afterwards so we don't have duplicate logic.
+- Keep the codebase very clean and organized
+- Avoid writing scripts in files if possible, especially if the script is likely only to be run once
+- Avoid having files over 200-300 lines of code. Refactor at that point.
+
+# Documentation
+- The application to be built is defined in /instructions/project-overview.md
+    - Reference this file to decide how to implement new features
+    - If a new feature is not documented here, add details on the new feature built into the app
+- Development steps are defined in /instructions/development-steps.md
+    - When asked to complete a step, refer to this file for what needs to be done next
+    - After completing a step, write down what was changed in the corresponsing step heading
+    - If there is no relevant step heading, create a new step and annotate it saying it was AI generated
+    - For minor changes and bug fixes, write what was done with a short summary and timestamp under the "Minor changes and bug fixes" heading
+- The look and design of the app is defined in /instructions/design.md
+    - Reference tthe "General Design" heading in this file when deciding on how UI elements should look
+    - New design ideas that are not yet implemented are under the "Changes to Try" heading
+    - Design changes should be documented under the "Changes Implemeted" heading
+
+# Security Rules
+- Follow best practices to building a secure app.
+- Don't expose sensitive information in network requests.
+- Don't store sensitive information insecurely on device.
+- Don't write sensitive data to logs. 
+- Sensitive data can include (amog other things) passwords, IDs, keys, Personal Identifying Information (PII)
