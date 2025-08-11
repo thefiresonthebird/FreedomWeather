@@ -30,7 +30,11 @@
     - When asked to complete a step, refer to this file for what needs to be done next
     - After completing a step, write down what was changed in the corresponsing step heading
     - If there is no relevant step heading, create a new step and annotate it saying it was AI generated
-    - For minor changes and bug fixes, write what was done with a short summary and timestamp under the "Minor changes and bug fixes" heading
+- Bug fixes are documented in /instructions/development-steps.md
+    - When fixes bugs and other issues, write what was done with a short summary and timestamp under the "BUG FIXES" heading
+    - Do not state whether the issue was fixed or not, but include a list of items that were changed that need testing
+- Minor Changes are documented in /instructions/development-steps.md
+    - When ask to make a MINOR CHANGE, add a short summary of what was changed, and a timestamp, under the heading "MINOR CHANGES"
 - The look and design of the app is defined in /instructions/design.md
     - Reference tthe "General Design" heading in this file when deciding on how UI elements should look
     - New design ideas that are not yet implemented are under the "Changes to Try" heading
