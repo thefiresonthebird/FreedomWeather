@@ -68,6 +68,9 @@ dependencies {
     implementation(libs.tiles)
     implementation(libs.tiles.material)
     implementation(libs.tiles.tooling.preview)
+    
+    // Location services
+    implementation(libs.play.services.location)
 
     // Horologist libraries for WearOS development
     implementation(libs.horologist.compose.tools)

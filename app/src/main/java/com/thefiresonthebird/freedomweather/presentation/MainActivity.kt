@@ -1,10 +1,14 @@
 package com.thefiresonthebird.freedomweather.presentation
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import com.thefiresonthebird.freedomweather.services.LocationService
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -42,6 +46,28 @@ class MainActivity : ComponentActivity() {
     // State holder to trigger UI updates
     private var stateUpdateTrigger by mutableStateOf(0)
     
+    // Location services
+    private lateinit var locationService: LocationService
+    private var currentLocation: String = "Getting location..."
+    
+    // Permission request launcher
+    private val locationPermissionRequest = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        when {
+            permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
+            permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
+                Log.d(TAG, "Location permission granted")
+                getCurrentLocation()
+            }
+            else -> {
+                Log.w(TAG, "Location permission denied")
+                currentLocation = "Location permission denied"
+                stateUpdateTrigger++
+            }
+        }
+    }
+    
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "onCreate: Starting MainActivity")
         
@@ -58,6 +84,12 @@ class MainActivity : ComponentActivity() {
 
         // Set WearOS theme
         setTheme(android.R.style.Theme_DeviceDefault)
+        
+        // Initialize location services
+        locationService = LocationService(this)
+        
+        // Check location permissions and get location
+        checkLocationPermissions()
 
         setContent {
             Log.d(TAG, "onCreate: Setting up Compose content")
@@ -79,6 +111,7 @@ class MainActivity : ComponentActivity() {
                 celsiusTemp = currentCelsiusTemp,
                 fahrenheitTemp = currentFahrenheitTemp,
                 selectedTemp = currentSelectedTemp,
+                currentLocation = currentLocation,
                 onTemperatureChanged = { celsius, fahrenheit ->
                     currentCelsiusTemp = celsius
                     currentFahrenheitTemp = fahrenheit
@@ -148,6 +181,58 @@ class MainActivity : ComponentActivity() {
         }
         return super.onGenericMotionEvent(event)
     }
+    
+    // Check if location permissions are granted
+    private fun checkLocationPermissions() {
+        when {
+            locationService.hasLocationPermissions() -> {
+                Log.d(TAG, "Location permissions already granted")
+                getCurrentLocation()
+            }
+            else -> {
+                Log.d(TAG, "Requesting location permissions")
+                locationPermissionRequest.launch(
+                    arrayOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION
+                    )
+                )
+            }
+        }
+    }
+    
+    // Get current location using GPS or network
+    private fun getCurrentLocation() {
+        Log.d(TAG, "getCurrentLocation: Attempting to get current location")
+        
+        locationService.getCurrentLocation(
+            onLocationReceived = { location ->
+                currentLocation = location
+                Log.d(TAG, "getCurrentLocation: Location received: $location")
+                stateUpdateTrigger++
+            },
+            onError = { error ->
+                currentLocation = error
+                Log.w(TAG, "getCurrentLocation: Error: $error")
+                stateUpdateTrigger++
+            }
+        )
+    }
+    
+
+    
+    // Method to refresh location (can be called from UI if needed)
+    fun refreshLocation() {
+        Log.d(TAG, "refreshLocation: Refreshing location")
+        currentLocation = "Getting location..."
+        stateUpdateTrigger++
+        getCurrentLocation()
+    }
+    
+    // Method to check if location services are available
+    fun isLocationServicesAvailable(): Boolean {
+        return locationService.isLocationServicesAvailable()
+    }
 
 }
 
@@ -158,6 +243,7 @@ fun WearApp(
     celsiusTemp: Double,
     fahrenheitTemp: Double,
     selectedTemp: SelectedTemperature,
+    currentLocation: String,
     onTemperatureChanged: (Double, Double) -> Unit
 ) {
     Log.d(TAG, "WearApp: Composable function called with temperature: $celsiusTemp")
@@ -177,6 +263,7 @@ fun WearApp(
                 celsiusTemp = celsiusTemp,
                 fahrenheitTemp = fahrenheitTemp,
                 selectedTemp = selectedTemp,
+                currentLocation = currentLocation,
                 onCelsiusClick = { 
                     Log.d(TAG, "WearApp: Celsius temperature selected")
                     onTemperatureSelected(SelectedTemperature.CELSIUS)
@@ -198,6 +285,7 @@ fun WeatherInterface(
     celsiusTemp: Double,
     fahrenheitTemp: Double,
     selectedTemp: SelectedTemperature,
+    currentLocation: String,
     onCelsiusClick: () -> Unit,
     onFahrenheitClick: () -> Unit,
     onTemperatureDeselected: () -> Unit,
@@ -209,9 +297,6 @@ fun WeatherInterface(
     // State for min/max temperatures
     var minTemp by remember { mutableStateOf(15.0) }
     var maxTemp by remember { mutableStateOf(25.0) }
-    
-    // Placeholder location
-    val location = "San Francisco, CA"
     
     // Temperature conversion functions
     fun celsiusToFahrenheit(celsius: Double): Double = (celsius * 9/5) + 32
@@ -253,7 +338,7 @@ fun WeatherInterface(
         verticalArrangement = Arrangement.SpaceEvenly
     ) {
         // Top row: Location
-        LocationRow(location = location)
+        LocationRow(location = currentLocation)
         
         // Center row: Current temperature in Celsius and Fahrenheit
         TemperatureRow(
@@ -428,6 +513,7 @@ fun DefaultPreview() {
         celsiusTemp = 20.0,
         fahrenheitTemp = 68.0,
         selectedTemp = SelectedTemperature.NONE, // Pass the default value for preview
+        currentLocation = "San Francisco, CA", // Preview location
         onTemperatureChanged = { celsius, fahrenheit ->
             Log.d(TAG, "DefaultPreview: Temperature updated - C: $celsius, F: $fahrenheit")
         }
