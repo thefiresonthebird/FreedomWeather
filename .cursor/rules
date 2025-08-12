@@ -6,7 +6,7 @@
 # Project structure
 - All files go in /TESTONE
 - This is an Android project, specifically a WearOS project written in Kotlin
-- Manage the porject structure to match a project written in Android Studio
+- Manage the project structure to match a project written in Android Studio
 
 # Tech Stack
 - Android
@@ -23,22 +23,27 @@
 - Avoid having files over 200-300 lines of code. Refactor at that point.
 
 # Documentation
-- The application to be built is defined in /instructions/project-overview.md
-    - Reference this file to decide how to implement new features
-    - If a new feature is not documented here, add details on the new feature built into the app
-- Development steps are defined in /instructions/development-steps.md
-    - When asked to complete a step, refer to this file for what needs to be done next
-    - After completing a step, write down what was changed in the corresponsing step heading
-    - If there is no relevant step heading, create a new step and annotate it saying it was AI generated
-- Bug fixes are documented in /instructions/development-steps.md
-    - When fixes bugs and other issues, write what was done with a short summary and timestamp under the "BUG FIXES" heading
-    - Do not state whether the issue was fixed or not, but include a list of items that were changed that need testing
-- Minor Changes are documented in /instructions/development-steps.md
-    - When ask to make a MINOR CHANGE, add a short summary of what was changed, and a timestamp, under the heading "MINOR CHANGES"
-- The look and design of the app is defined in /instructions/design.md
-    - Reference tthe "General Design" heading in this file when deciding on how UI elements should look
-    - New design ideas that are not yet implemented are under the "Changes to Try" heading
-    - Design changes should be documented under the "Changes Implemeted" heading
+##The application to be built is defined in /instructions/project-overview.md
+- Reference this file to decide how to implement new features
+- If a NEW FEATURE is not documented here, write details on the NEW FEATURE into this document after it is created
+
+## Development steps are defined in /instructions/development-steps.md
+- When asked to complete a step, refer to this file for what needs to be done next
+- After completing a step, write down what was changed in the corresponsing step heading
+- If there is no relevant step heading, create a new step and annotate it saying it was AI generated
+
+## Bug fixes are documented in /instructions/development-steps.md
+- When fixes bugs are implemented, write what was done with a short summary under the "BUG FIXES" heading
+- Do not state whether the issue was fixed or not, but include a list of items that were changed that need testing
+- A separate test must be completed to verify if the fix worked
+
+## Minor Changes are documented in /instructions/development-steps.md
+- When ask to make a MINOR CHANGE, add a short summary of what was changed under the heading "MINOR CHANGES" in the development-steps.md file
+
+## The look and design of the app is defined in /instructions/design.md
+- Reference tthe "General Design" heading in this file when deciding on how UI elements should look
+- New design ideas that are not yet implemented are under the "Changes to Try" heading
+- Design changes should be documented under the "Changes Implemeted" heading
 
 # Security Rules
 - Follow best practices to building a secure app.

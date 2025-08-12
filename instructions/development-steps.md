@@ -156,7 +156,24 @@
 
 # MINOR CHANGES
 
-## Dial Direction Reversed - 2024-12-19
+## Dial Direction Reversed 
 **What was changed:** Reversed the direction of the dial that increases the number in the temperature adjustment functionality.
 **Technical details:** In the `handleRotaryInput` method, swapped the `+` and `-` operations for both Celsius and Fahrenheit temperature adjustments. Previously, `increment = true` increased temperature, now it decreases temperature.
+**Files modified:** `app/src/main/java/com/thefiresonthebird/freedomweather/presentation/MainActivity.kt`
+
+## Rotary Input Simulation Code Removed
+**What was changed:** Removed all placeholder code for simulating rotary input since the actual rotary input is now working.
+**Technical details:** 
+- Removed `simulateRotaryInput` method from MainActivity class
+- Removed test buttons that simulated crown/dial input with "↻ -0.5°" and "↻ +0.5°" text
+- Removed `LaunchedEffect` and related TODO comments about implementing rotary input
+- Cleaned up the UI to only show the actual working rotary input functionality
+**Files modified:** `app/src/main/java/com/thefiresonthebird/freedomweather/presentation/MainActivity.kt`
+
+## Status Indicator Text Removed
+**What was changed:** Removed the status indicator text that showed "Editing: Celsius/Fahrenheit" and "Use crown/dial to adjust" when a temperature is selected.
+**Technical details:** 
+- Removed the Column containing the two Text composables for status display
+- Cleaned up the UI to rely solely on visual feedback (border and background highlighting) for temperature selection
+- Maintains the same functionality while providing a cleaner, less cluttered interface
 **Files modified:** `app/src/main/java/com/thefiresonthebird/freedomweather/presentation/MainActivity.kt`
