@@ -1,8 +1,3 @@
-/* While this template provides a good starting point for using Wear Compose, you can always
- * take a look at https://github.com/android/wear-os-samples/tree/main/ComposeStarter to find the
- * most up to date changes to the libraries and their usages.
- */
-
 package com.thefiresonthebird.freedomweather.presentation
 
 import android.os.Bundle
@@ -97,18 +92,15 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume: Activity resumed, checking for rotary input")
-        
-        // The actual rotary input handling will be implemented in the next iteration
-        Log.d(TAG, "onResume: Rotary input handler setup complete")
     }
     
     // Method to handle rotary input from the crown/dial
-    fun handleRotaryInput(increment: Boolean) {
-        Log.d(TAG, "handleRotaryInput: Rotary input received, increment: $increment, selected: $currentSelectedTemp")
+    fun handleRotaryInput(scrollAmount: Float) {
+        Log.d(TAG, "handleRotaryInput: Rotary input received, scrollAmount: $scrollAmount, selected: $currentSelectedTemp")
         
         when (currentSelectedTemp) {
             SelectedTemperature.CELSIUS -> {
-                val newTemp = if (increment) currentCelsiusTemp - 0.5 else currentCelsiusTemp + 0.5
+                val newTemp = currentCelsiusTemp - scrollAmount
                 if (newTemp in -50.0..50.0) {
                     currentCelsiusTemp = newTemp
                     currentFahrenheitTemp = (newTemp * 9/5) + 32
@@ -118,7 +110,7 @@ class MainActivity : ComponentActivity() {
                 }
             }
             SelectedTemperature.FAHRENHEIT -> {
-                val newTemp = if (increment) currentFahrenheitTemp - 0.5 else currentFahrenheitTemp + 0.5
+                val newTemp = currentFahrenheitTemp - scrollAmount
                 if (newTemp in -58.0..122.0) {
                     currentFahrenheitTemp = newTemp
                     currentCelsiusTemp = (newTemp - 32) * 5/9
@@ -143,9 +135,8 @@ class MainActivity : ComponentActivity() {
                 val scrollAmount = motionEvent.getAxisValue(android.view.MotionEvent.AXIS_SCROLL)
                 Log.d(TAG, "onGenericMotionEvent: Rotary scroll detected, amount: $scrollAmount")
                 
-                // Convert scroll amount to increment/decrement
-                val increment = scrollAmount > 0
-                handleRotaryInput(increment)
+                // handle the rotary input
+                handleRotaryInput(scrollAmount)
                 
                 return true // Event handled
             }
@@ -157,12 +148,7 @@ class MainActivity : ComponentActivity() {
         }
         return super.onGenericMotionEvent(event)
     }
-    
-    // Public method to simulate rotary input for testing
-    fun simulateRotaryInput(increment: Boolean) {
-        Log.d(TAG, "simulateRotaryInput: Simulating rotary input, increment: $increment")
-        handleRotaryInput(increment)
-    }
+
 }
 
 @Composable
@@ -269,26 +255,6 @@ fun WeatherInterface(
         // Top row: Location
         LocationRow(location = location)
         
-        // Status indicator showing which temperature is selected
-        if (selectedTemp != SelectedTemperature.NONE) {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text(
-                    text = "Editing: ${if (selectedTemp == SelectedTemperature.CELSIUS) "Celsius" else "Fahrenheit"}",
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colors.primary,
-                    modifier = Modifier.padding(vertical = 2.dp)
-                )
-                Text(
-                    text = "Use crown/dial to adjust",
-                    fontSize = 10.sp,
-                    color = MaterialTheme.colors.primary.copy(alpha = 0.7f),
-                    modifier = Modifier.padding(vertical = 2.dp)
-                )
-            }
-        }
-        
         // Center row: Current temperature in Celsius and Fahrenheit
         TemperatureRow(
             celsiusTemp = celsiusTemp,
@@ -303,54 +269,7 @@ fun WeatherInterface(
             minTemp = minTemp,
             maxTemp = maxTemp
         )
-        
-        // Simple test buttons to demonstrate rotary input functionality
-        // These simulate what the actual crown/dial input will do
-        if (selectedTemp != SelectedTemperature.NONE) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                Text(
-                    text = "↻ -0.5°",
-                    modifier = Modifier
-                        .clickable { 
-                            // Simulate crown/dial input for testing
-                            (context as? MainActivity)?.simulateRotaryInput(false)
-                        }
-                        .padding(8.dp)
-                        .background(MaterialTheme.colors.primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                        .padding(4.dp),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colors.primary
-                )
-                Text(
-                    text = "↻ +0.5°",
-                    modifier = Modifier
-                        .clickable { 
-                            // Simulate crown/dial input for testing
-                            (context as? MainActivity)?.simulateRotaryInput(true)
-                        }
-                        .padding(8.dp)
-                        .background(MaterialTheme.colors.primary.copy(alpha = 0.2f), RoundedCornerShape(4.dp))
-                        .padding(4.dp),
-                    fontSize = 12.sp,
-                    color = MaterialTheme.colors.primary
-                )
-            }
-        }
-        
-        // Handle actual watch dial input for temperature editing
-        LaunchedEffect(selectedTemp) {
-            Log.d(TAG, "WeatherInterface: Selected temperature changed to: $selectedTemp")
-            
-            // TODO: In a real implementation, this would connect to the actual rotary input
-            // For now, we'll simulate the behavior and prepare the structure
-            // The actual rotary input handling will be implemented in the next iteration
-        }
-        
-        // Remove test buttons - replaced with actual watch dial input
-        // The user will now use the physical crown/dial to adjust temperatures
+
     }
 }
 
