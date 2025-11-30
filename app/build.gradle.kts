@@ -4,16 +4,32 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+import java.util.Properties
+
 android {
     namespace = "com.thefiresonthebird.freedomweather"
-    compileSdk = 36
+    compileSdk = 35
+    buildToolsVersion = "35.0.0"
+
+    // WearOS specific configuration
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
+
+    val localProperties = Properties()
+    val localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localPropertiesFile.inputStream().use { localProperties.load(it) }
+    }
 
     defaultConfig {
         applicationId = "com.thefiresonthebird.freedomweather"
         minSdk = 30
-        targetSdk = 36
+        targetSdk = 35
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.1"
+        buildConfigField("String", "WEATHER_API_KEY", "\"${localProperties.getProperty("WEATHER_API_KEY")}\"")
     }
 
     buildTypes {
@@ -27,17 +43,12 @@ android {
     }
 
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_21
+        targetCompatibility = JavaVersion.VERSION_21
     }
 
     kotlinOptions {
-        jvmTarget = "11"
-    }
-
-    // WearOS specific configuration
-    buildFeatures {
-        compose = true
+        jvmTarget = "21"
     }
 
     composeOptions {
@@ -45,7 +56,8 @@ android {
     }
 
     // Enable WearOS specific features
-    useLibrary("wear-sdk")
+    // Enable WearOS specific features
+    // useLibrary("wear-sdk")
 }
 
 dependencies {
@@ -62,12 +74,16 @@ dependencies {
     implementation(libs.compose.foundation)
     implementation(libs.wear.tooling.preview)
     implementation(libs.activity.compose)
+    implementation(libs.lifecycle.runtime.ktx)
 
     // WearOS specific UI components
     implementation(libs.core.splashscreen)
     implementation(libs.tiles)
     implementation(libs.tiles.material)
     implementation(libs.tiles.tooling.preview)
+    implementation(libs.androidx.concurrent.futures.ktx)
+    implementation(libs.protolayout)
+    implementation(libs.protolayout.material)
     
     // Location services
     implementation(libs.play.services.location)
@@ -76,6 +92,19 @@ dependencies {
     implementation(libs.horologist.compose.tools)
     implementation(libs.horologist.tiles)
     implementation(libs.watchface.complications.data.source.ktx)
+
+    // Networking
+    implementation(libs.retrofit)
+    implementation(libs.retrofit.converter.gson)
+    implementation(libs.okhttp)
+    implementation(libs.okhttp.logging)
+    implementation(libs.gson)
+
+    // DataStore
+    implementation(libs.androidx.datastore.preferences)
+
+    // WorkManager
+    implementation(libs.androidx.work.runtime.ktx)
 
     // Testing dependencies
     androidTestImplementation(platform(libs.compose.bom))

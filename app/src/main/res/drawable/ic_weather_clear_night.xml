@@ -1,0 +1,12 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Crescent Moon -->
+    <path
+        android:fillColor="#FFF176"
+        android:pathData="M 70 50 A 30 30 0 1 1 35 25 A 25 25 0 1 0 70 50 Z" />
+
+</vector>

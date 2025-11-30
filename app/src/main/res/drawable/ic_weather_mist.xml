@@ -1,0 +1,42 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Mist Line Top -->
+    <path
+        android:strokeColor="#B0BEC5"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 25 20 L 70 20" />
+
+    <!-- Mist Line Top Middle -->
+    <path
+        android:strokeColor="#B0BEC5"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 10 35 L 80 35" />
+
+    <!-- Mist Line Middle -->
+    <path
+        android:strokeColor="#B0BEC5"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 20 50 L 90 50" />
+
+    <!-- Mist Line Bottom Middle -->
+    <path
+        android:strokeColor="#B0BEC5"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 10 65 L 80 65" />
+
+    <!-- Mist Line Bottom -->
+    <path
+        android:strokeColor="#B0BEC5"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:pathData="M 20 80 L 70 80" />
+
+</vector>

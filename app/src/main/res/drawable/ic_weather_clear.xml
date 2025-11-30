@@ -1,0 +1,64 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Sun Body -->
+    <path
+        android:fillColor="#FFB300"
+        android:pathData="M 50 20 A 30 30 0 1 0 50 80 A 30 30 0 1 0 50 20 Z" />
+
+    <!-- Ray Top Centre -->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 50 5 L 50 15" />
+    <!-- Rays Bottom Centre-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 50 85 L 50 95" />
+    <!-- Rays Middle Left-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 5 50 L 15 50" />
+    <!-- Rays Middle Right-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 85 50 L 95 50" />
+
+    <!-- Rays Top Left-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 17 17 L 25 25" />
+    <!-- Rays Bottom Left-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 17 83 L 25 75" />
+    <!-- Rays Top Right-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 83 17 L 75 25" />
+    <!-- Rays Bottom Right-->
+    <path
+        android:strokeColor="#FFB300"
+        android:strokeWidth="5"
+        android:strokeLineCap="round"
+        android:pathData="M 83 83 L 75 75" />
+</vector>
+
+
+<!-- M 75 75 L 85 85  M 65 35 L 75 25 -->

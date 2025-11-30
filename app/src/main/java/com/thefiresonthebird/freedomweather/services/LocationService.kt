@@ -88,6 +88,56 @@ class LocationService(private val context: Context) {
             onError("Location service error")
         }
     }
+
+    /**
+     * Get current location with full Location object and address string
+     * @param onLocationReceived callback with the Location object and resolved address string
+     * @param onError callback when location retrieval fails
+     */
+    @SuppressLint("MissingPermission")
+    fun getCurrentLocationData(
+        onLocationReceived: (Location, String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        Log.d(TAG, "getCurrentLocationData: Attempting to get current location data")
+        
+        if (!hasLocationPermissions()) {
+            Log.w(TAG, "getCurrentLocationData: Location permissions not granted")
+            onError("Location permission denied")
+            return
+        }
+        
+        try {
+            fusedLocationClient.getCurrentLocation(
+                Priority.PRIORITY_BALANCED_POWER_ACCURACY,
+                object : CancellationToken() {
+                    override fun onCanceledRequested(listener: OnTokenCanceledListener): CancellationToken {
+                        return this
+                    }
+                    
+                    override fun isCancellationRequested(): Boolean {
+                        return false
+                    }
+                }
+            ).addOnSuccessListener { location: Location? ->
+                location?.let { loc ->
+                    Log.d(TAG, "getCurrentLocationData: Location received - lat: ${loc.latitude}, lon: ${loc.longitude}")
+                    getAddressFromLocation(loc, { address ->
+                        onLocationReceived(loc, address)
+                    }, onError)
+                } ?: run {
+                    Log.w(TAG, "getCurrentLocationData: Location is null")
+                    onError("Location unavailable")
+                }
+            }.addOnFailureListener { exception ->
+                Log.e(TAG, "getCurrentLocationData: Failed to get location", exception)
+                onError("Location service error")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "getCurrentLocationData: Exception occurred", e)
+            onError("Location service error")
+        }
+    }
     
     /**
      * Convert coordinates to human-readable address
@@ -95,7 +145,7 @@ class LocationService(private val context: Context) {
      * @param onAddressResolved callback with the resolved address
      * @param onError callback when geocoding fails
      */
-    @SuppressLint("Deprecation")
+    @Suppress("DEPRECATION")
     private fun getAddressFromLocation(
         location: Location,
         onAddressResolved: (String) -> Unit,
@@ -105,30 +155,46 @@ class LocationService(private val context: Context) {
         
         try {
             val geocoder = Geocoder(context)
-            val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
             
-            addresses?.firstOrNull()?.let { address ->
-                val city = address.locality ?: "Unknown City"
-                val state = address.adminArea ?: ""
-                val country = address.countryName ?: ""
-                
-                val resolvedLocation = when {
-                    state.isNotEmpty() -> "$city, $state"
-                    country.isNotEmpty() -> "$city, $country"
-                    else -> city
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+                geocoder.getFromLocation(location.latitude, location.longitude, 1) { addresses ->
+                    handleAddresses(addresses, onAddressResolved, onError)
                 }
-                
-                Log.d(TAG, "getAddressFromLocation: Address resolved to: $resolvedLocation")
-                onAddressResolved(resolvedLocation)
-            } ?: run {
-                Log.w(TAG, "getAddressFromLocation: No address found for coordinates")
-                onError("Unknown location")
+            } else {
+                val addresses = geocoder.getFromLocation(location.latitude, location.longitude, 1)
+                handleAddresses(addresses, onAddressResolved, onError)
             }
         } catch (e: Exception) {
             Log.e(TAG, "getAddressFromLocation: Geocoding failed", e)
             // Fallback to coordinates if geocoding fails
             val coordinateLocation = "%.2f, %.2f".format(location.latitude, location.longitude)
             onAddressResolved(coordinateLocation)
+        }
+    }
+
+    private fun handleAddresses(
+        addresses: List<android.location.Address>?,
+        onAddressResolved: (String) -> Unit,
+        onError: (String) -> Unit
+    ) {
+        addresses?.firstOrNull()?.let { address ->
+            val city = address.locality ?: "Unknown City"
+            val state = address.adminArea ?: ""
+            val country = address.countryName ?: ""
+            
+            // val resolvedLocation = when {
+            //     state.isNotEmpty() -> "$city, $state"
+            //     country.isNotEmpty() -> "$city, $country"
+            //     else -> city
+            // }
+
+            val resolvedLocation = "$city" // Just return the city name for cleaner UI
+            
+            Log.d(TAG, "getAddressFromLocation: Address resolved to: $resolvedLocation")
+            onAddressResolved(resolvedLocation) 
+        } ?: run {
+            Log.w(TAG, "getAddressFromLocation: No address found for coordinates")
+            onError("Unknown location")
         }
     }
     

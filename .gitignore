@@ -2,9 +2,13 @@
 .gradle
 /local.properties
 .idea/
-.DS_Store
-/build
+**.DS_Store
+build/
 /captures
 .externalNativeBuild
 .cxx
 local.properties
+.agent/
+.cursor/
+.kotlin/
+.vscode/
