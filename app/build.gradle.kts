@@ -24,11 +24,12 @@ android {
     }
 
     defaultConfig {
+        versionName = "0.1"
+        setProperty("archivesBaseName", "FreedomWeather-$versionName")
         applicationId = "com.thefiresonthebird.freedomweather"
         minSdk = 30
         targetSdk = 35
         versionCode = 1
-        versionName = "0.1"
         buildConfigField("String", "WEATHER_API_KEY", "\"${localProperties.getProperty("WEATHER_API_KEY")}\"")
     }
 
@@ -54,10 +55,6 @@ android {
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
     }
-
-    // Enable WearOS specific features
-    // Enable WearOS specific features
-    // useLibrary("wear-sdk")
 }
 
 dependencies {
