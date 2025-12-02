@@ -5,11 +5,14 @@ plugins {
 }
 
 import java.util.Properties
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
+val appVersionName = "0.2.0"
 
 android {
     namespace = "com.thefiresonthebird.freedomweather"
-    compileSdk = 35
-    buildToolsVersion = "35.0.0"
+    compileSdk = 36
+    buildToolsVersion = "36.0.0"
 
     // WearOS specific configuration
     buildFeatures {
@@ -24,11 +27,10 @@ android {
     }
 
     defaultConfig {
-        versionName = "0.1"
-        setProperty("archivesBaseName", "FreedomWeather-$versionName")
+        versionName = appVersionName
         applicationId = "com.thefiresonthebird.freedomweather"
         minSdk = 30
-        targetSdk = 35
+        targetSdk = 36
         versionCode = 1
         buildConfigField("String", "WEATHER_API_KEY", "\"${localProperties.getProperty("WEATHER_API_KEY")}\"")
     }
@@ -48,12 +50,20 @@ android {
         targetCompatibility = JavaVersion.VERSION_21
     }
 
-    kotlinOptions {
-        jvmTarget = "21"
-    }
+
 
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
+    }
+}
+
+base {
+    archivesName.set("FreedomWeather-$appVersionName")
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_21)
     }
 }
 
@@ -102,6 +112,10 @@ dependencies {
 
     // WorkManager
     implementation(libs.androidx.work.runtime.ktx)
+
+    // Guava and Coroutines support
+    implementation(libs.guava)
+    implementation(libs.kotlinx.coroutines.guava)
 
     // Testing dependencies
     androidTestImplementation(platform(libs.compose.bom))
