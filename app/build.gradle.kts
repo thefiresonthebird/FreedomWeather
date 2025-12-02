@@ -7,7 +7,7 @@ plugins {
 import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-val appVersionName = "0.2.0"
+val appVersionName = "0.2.1"
 
 android {
     namespace = "com.thefiresonthebird.freedomweather"

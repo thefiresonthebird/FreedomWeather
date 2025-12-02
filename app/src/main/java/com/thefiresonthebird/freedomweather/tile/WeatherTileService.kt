@@ -1,6 +1,7 @@
 package com.thefiresonthebird.freedomweather.tile
 
 import android.content.Context
+import android.content.Intent
 import android.util.Log
 import androidx.wear.protolayout.ActionBuilders
 import androidx.wear.protolayout.ColorBuilders
@@ -11,6 +12,7 @@ import androidx.wear.protolayout.ModifiersBuilders
 import androidx.wear.protolayout.TimelineBuilders
 import androidx.wear.protolayout.material.Text
 import androidx.wear.protolayout.material.Typography
+import androidx.wear.tiles.EventBuilders
 import androidx.wear.tiles.RequestBuilders
 import androidx.wear.tiles.TileBuilders
 import androidx.wear.tiles.TileService
@@ -31,28 +33,6 @@ class WeatherTileService : TileService() {
         super.onCreate()
         Log.i(TAG, "onCreate: Service created")
         userPreferencesRepository = UserPreferencesRepository(this)
-
-        serviceScope.launch {
-            try {
-                // Check if data is stale (older than 5 minutes)
-                // If stale, trigger update and show loading state
-                val preferences = userPreferencesRepository.userPreferencesFlow.first()
-                val lastUpdated = preferences.lastUpdated
-                val isStale = System.currentTimeMillis() - lastUpdated > 300000
-
-                if (isStale) {
-                    Log.i(TAG, "onCreate: Data is stale, requesting TileService update")
-                    // Request tile update
-                    TileService.getUpdater(this@WeatherTileService)
-                        .requestUpdate(WeatherTileService::class.java)
-                } else {
-                    Log.i(TAG, "onCreate: Data is fresh, no update requested")
-                }
-
-            } catch (e: Exception) {
-                Log.e(TAG, "onCreate: Error checking/updating weather", e)
-            }
-        }
     }
 
     override fun onTileRequest(requestParams: RequestBuilders.TileRequest): ListenableFuture<TileBuilders.Tile> {
@@ -66,21 +46,22 @@ class WeatherTileService : TileService() {
                 val location = preferences.lastLocationName
                 val tempC = preferences.lastTempC
                 val tempF = preferences.lastTempF
-                var conditionIcon = preferences.lastConditionIcon
-                var  conditionText = preferences.lastConditionText
+                val conditionIcon = preferences.lastConditionIcon
+                val conditionText = preferences.lastConditionText
                 val lastUpdated = preferences.lastUpdated
 
                 // Check if data is stale (older than 5 minutes)
                 // If stale, trigger update and show loading state
                 val isStale = System.currentTimeMillis() - lastUpdated > 300000
                 
-                Log.d(TAG, "isStale: $isStale")
-                Log.d(TAG, "Condition icon code: $conditionIcon")
-                Log.d(TAG, "Location: $location")
-                Log.d(TAG, "Temperature C: $tempC")
-                Log.d(TAG, "Temperature F: $tempF")
-                Log.d(TAG, "Condition text: $conditionText")
-                Log.d(TAG, "Last updated: $lastUpdated")
+                Log.d(TAG, "onTileRequest: isStale: $isStale")
+                Log.d(TAG, "onTileRequest: Condition icon code: $conditionIcon")
+                Log.d(TAG, "onTileRequest: Location: $location")
+                Log.d(TAG, "onTileRequest: Temperature C: $tempC")
+                Log.d(TAG, "onTileRequest: Temperature F: $tempF")
+                Log.d(TAG, "onTileRequest: Condition text: $conditionText")
+                val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastUpdated))
+                Log.d(TAG, "onTileRequest: Last updated: $time")
                 
                 if (isStale) {
                     Log.i(TAG, "onTileRequest: Data is stale, triggering background weather update")
@@ -96,8 +77,6 @@ class WeatherTileService : TileService() {
                     Log.i(TAG, "onTileRequest: Data is fresh, no update requested")
                 }
 
-                val displayLastUpdated = lastUpdated
-
                 val deviceParams = DeviceParametersBuilders.DeviceParameters.Builder()
                     .setScreenDensity(requestParams.deviceConfiguration.screenDensity)
                     .setScreenWidthDp(requestParams.deviceConfiguration.screenWidthDp)
@@ -108,7 +87,7 @@ class WeatherTileService : TileService() {
                 Log.i(TAG, "onTileRequest: Building tile")
                 val tile = TileBuilders.Tile.Builder()
                     .setResourcesVersion("2")
-                    .setFreshnessIntervalMillis(60 * 60 * 1000L)
+                    .setFreshnessIntervalMillis(15 * 60 * 1000L) // tile will refresh every 15 minutes
                     .setTileTimeline(
                         TimelineBuilders.Timeline.Builder()
                             .addTimelineEntry(
@@ -116,7 +95,7 @@ class WeatherTileService : TileService() {
                                     .setLayout(
                                         LayoutElementBuilders.Layout.Builder()
                                             .setRoot(
-                                                layout(this@WeatherTileService, deviceParams, location, tempC, tempF, conditionIcon, conditionText, displayLastUpdated)
+                                                layout(this@WeatherTileService, deviceParams, location, tempC, tempF, conditionIcon, conditionText, lastUpdated)
                                             )
                                             .build()
                             )
@@ -168,8 +147,9 @@ class WeatherTileService : TileService() {
         return serviceScope.future {
             val resourcesBuilder = androidx.wear.protolayout.ResourceBuilders.Resources.Builder()
                 .setVersion("2")
-
+            Log.i(TAG, "onTileResourcesRequest: Loading condition icons")
             ALL_ICONS.forEach { iconCode ->
+                Log.d(TAG, "onTileResourcesRequest: Loading icon $iconCode")
                 resourcesBuilder.addIdToImageMapping(iconCode, androidx.wear.protolayout.ResourceBuilders.ImageResource.Builder()
                     .setAndroidResourceByResId(
                         androidx.wear.protolayout.ResourceBuilders.AndroidImageResourceByResId.Builder()
@@ -207,14 +187,9 @@ private fun layout(
     conditionText: String,
     lastUpdated: Long
 ): LayoutElementBuilders.LayoutElement {
-    val lastUpdatedText = if (lastUpdated == -1L) {
-        "Loading..."
-    } else if (lastUpdated > 0) {
-        val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastUpdated))
-        "Updated: $time"
-    } else {
-        "Update pending"
-    }
+
+    val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastUpdated))
+    val lastUpdatedText = "Updated: $time"
 
     val launchActivity = ActionBuilders.LaunchAction.Builder()
         .setAndroidActivity(

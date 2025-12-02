@@ -1,6 +1,7 @@
 package com.thefiresonthebird.freedomweather.presentation
 
 import android.Manifest
+import android.location.Location
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
@@ -33,6 +34,7 @@ import androidx.wear.compose.material.Text
 import androidx.wear.compose.material.TimeText
 import androidx.wear.tooling.preview.devices.WearDevices
 import com.thefiresonthebird.freedomweather.presentation.theme.FreedomWeatherTheme
+import kotlinx.coroutines.flow.first
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -53,20 +55,10 @@ class MainActivity : ComponentActivity() {
     private var currentConditionIcon: String = "01d"
     private var currentConditionText: String = "Unknown"
     private var currentLastUpdated: Long = 0L
-    
-    // Weather repository
     private lateinit var weatherRepository: WeatherRepository
-    
-    // User preferences repository
     private lateinit var userPreferencesRepository: UserPreferencesRepository
-    
-    // State holder to trigger UI updates
     private var stateUpdateTrigger by mutableIntStateOf(0)
-    
-    // Loading state
     private var isLoading by mutableStateOf(false)
-    
-    // Location services
     private lateinit var locationService: LocationService
     private var currentLocation: String = "Getting location..."
     
@@ -77,7 +69,7 @@ class MainActivity : ComponentActivity() {
         when {
             permissions.getOrDefault(Manifest.permission.ACCESS_FINE_LOCATION, false) ||
             permissions.getOrDefault(Manifest.permission.ACCESS_COARSE_LOCATION, false) -> {
-                Log.d(TAG, "Location permission granted")
+                Log.i(TAG, "Location permission granted")
                 // Location will be fetched in onResume
             }
             else -> {
@@ -89,7 +81,7 @@ class MainActivity : ComponentActivity() {
     }
     
     override fun onCreate(savedInstanceState: Bundle?) {
-        Log.d(TAG, "onCreate: Starting MainActivity")
+        Log.i(TAG, "onCreate: Starting MainActivity")
         
         try {
             // Install splash screen for better UX
@@ -100,22 +92,12 @@ class MainActivity : ComponentActivity() {
         }
 
         super.onCreate(savedInstanceState)
-        Log.d(TAG, "onCreate: MainActivity created successfully")
+        Log.i(TAG, "onCreate: MainActivity created successfully")
 
-        // Set WearOS theme
         setTheme(android.R.style.Theme_DeviceDefault)
-        
-        // Initialize location services
         locationService = LocationService(this)
-        
-        // Initialize weather repository
         weatherRepository = WeatherRepository()
-        
-        // Initialize user preferences repository
         userPreferencesRepository = UserPreferencesRepository(this)
-        
-        // Initialize weather update helper
-        val weatherUpdateHelper = com.thefiresonthebird.freedomweather.data.WeatherUpdateHelper(this)
         
         // Load saved preferences
         lifecycleScope.launch {
@@ -128,19 +110,15 @@ class MainActivity : ComponentActivity() {
                     currentConditionIcon = preferences.lastConditionIcon
                     currentConditionText = preferences.lastConditionText
                     currentLastUpdated = preferences.lastUpdated
-                    Log.d(TAG, "onCreate: Loaded cached preferences - Loc: ${preferences.lastLocationName}, Temp: ${preferences.lastTempC}")
+                    Log.i(TAG, "onCreate: Loaded cached preferences - Loc: ${preferences.lastLocationName}, Temp: ${preferences.lastTempC}")
                     stateUpdateTrigger++
             }
         }
         
-        // Check location permissions and get location
         checkLocationPermissions()
-        
-        // Schedule background updates
-        //scheduleWeatherUpdates()
 
         setContent {
-            Log.d(TAG, "onCreate: Setting up Compose content")
+            Log.i(TAG, "onCreate: Setting up Compose content")
             
             // Use the stateUpdateTrigger to force recomposition
             val currentState = stateUpdateTrigger
@@ -148,12 +126,12 @@ class MainActivity : ComponentActivity() {
             WearApp(
                 onTemperatureSelected = { temp -> 
                     currentSelectedTemp = temp
-                    Log.d(TAG, "MainActivity: Temperature selected: $temp")
+                    Log.d(TAG, "onCreate: Temperature selected: $temp")
                     stateUpdateTrigger++ // Force UI recomposition
                 },
                 onTemperatureDeselected = {
                     currentSelectedTemp = SelectedTemperature.NONE
-                    Log.d(TAG, "MainActivity: Temperature deselected")
+                    Log.d(TAG, "onCreate: Temperature deselected")
                     stateUpdateTrigger++ // Force UI recomposition
                 },
                 celsiusTemp = currentCelsiusTemp,
@@ -172,13 +150,13 @@ class MainActivity : ComponentActivity() {
                     currentFahrenheitTemp = fahrenheit
                     currentMinTemp += diff
                     currentMaxTemp += diff
-                    Log.d(TAG, "MainActivity: Temperature updated - C: $celsius, F: $fahrenheit")
-                    Log.d(TAG, "MainActivity: Temperature updated - C: $celsius, F: $fahrenheit")
+                    Log.d(TAG, "onCreate: Temperature updated - C: $celsius, F: $fahrenheit")
+                    Log.d(TAG, "onCreate: Temperature updated - C: $celsius, F: $fahrenheit")
                     stateUpdateTrigger++ // Force UI recomposition
                 },
                 onRefresh = {
-                    Log.d(TAG, "MainActivity: Refresh requested from UI")
-                    refreshLocation()
+                    Log.i(TAG, "onCreate: Refresh requested from UI")
+                    manualRefresh()
                 }
             )
         }
@@ -186,13 +164,34 @@ class MainActivity : ComponentActivity() {
     
     override fun onResume() {
         super.onResume()
-        Log.d(TAG, "onResume: Activity resumed, checking for rotary input and refreshing weather")
+        Log.i(TAG, "onResume: Activity resumed, checking for rotary input and refreshing weather")
         
         // Refresh weather data if permissions are granted
         if (::locationService.isInitialized && locationService.hasLocationPermissions()) {
+            Log.i(TAG, "onResume: Refreshing weather data")
             isLoading = true
             stateUpdateTrigger++
-            getCurrentLocation()
+
+            lifecycleScope.launch {
+                Log.d(TAG, "onResume: Fetching preferences")
+                val preferences = userPreferencesRepository.userPreferencesFlow.first()
+                
+                val currentLastUpdatedLocation = preferences.lastUpdatedLocation
+                val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(currentLastUpdatedLocation))
+                val currentLat = preferences.lastLatitude
+                val currentLong = preferences.lastLongitude
+                Log.i(TAG, "onResume: Loaded cached preferences - Loc: ${preferences.lastLocationName}, LastFetched: $time")
+
+                val isStale = System.currentTimeMillis() - currentLastUpdatedLocation > 60 * 60 * 1000
+
+                if (isStale) {
+                    Log.i(TAG, "onResume: Location last updated more than 1 hour ago, updating location and weather")
+                    getCurrentLocationWeather()
+                } else {
+                    Log.i(TAG, "onResume: Location last updated less than 1 hour ago, updating weather with cached location")
+                    updateWeather(currentLat, currentLong)
+                }
+            }
         }
     }
     
@@ -210,7 +209,6 @@ class MainActivity : ComponentActivity() {
                     currentMaxTemp += diff
                     currentCelsiusTemp = newTemp
                     Log.d(TAG, "handleRotaryInput: Updated Celsius to $newTemp, Fahrenheit to $currentFahrenheitTemp")
-                    // Trigger UI recomposition
                     stateUpdateTrigger++
                 }
             }
@@ -224,7 +222,6 @@ class MainActivity : ComponentActivity() {
                     currentMaxTemp += diffC
                     currentFahrenheitTemp = newTemp
                     Log.d(TAG, "handleRotaryInput: Updated Fahrenheit to $newTemp, Celsius to $currentCelsiusTemp")
-                    // Trigger UI recomposition
                     stateUpdateTrigger++
                 }
             }
@@ -246,8 +243,8 @@ class MainActivity : ComponentActivity() {
                 
                 // handle the rotary input
                 handleRotaryInput(scrollAmount)
-                
-                return true // Event handled
+
+                return true
             }
             
             // Log other motion events for debugging
@@ -262,11 +259,11 @@ class MainActivity : ComponentActivity() {
     private fun checkLocationPermissions() {
         when {
             locationService.hasLocationPermissions() -> {
-                Log.d(TAG, "Location permissions already granted")
+                Log.d(TAG, "checkLocationPermissions: Location permissions already granted")
                 // Location will be fetched in onResume
             }
             else -> {
-                Log.d(TAG, "Requesting location permissions")
+                Log.d(TAG, "checkLocationPermissions: Requesting location permissions")
                 locationPermissionRequest.launch(
                     arrayOf(
                         Manifest.permission.ACCESS_FINE_LOCATION,
@@ -277,33 +274,24 @@ class MainActivity : ComponentActivity() {
         }
     }
     
-    // Get current location using GPS or network
-    private fun getCurrentLocation() {
-        Log.d(TAG, "getCurrentLocation: Attempting to get current location")
+    // Get current location using GPS or network; call weather update if successful
+    private fun getCurrentLocationWeather() {
+        Log.i(TAG, "getCurrentLocation: Attempting to get current location")
         
         locationService.getCurrentLocationData(
             onLocationReceived = { location, address ->
+                Log.i(TAG, "getCurrentLocation: Location received: $address")
+                Log.d(TAG, "getCurrentLocation: Location details: $location")
                 currentLocation = address
-                Log.d(TAG, "getCurrentLocation: Location received: $address")
-                stateUpdateTrigger++
-                
-                // Fetch weather data
                 lifecycleScope.launch {
-                    val weatherUpdateHelper = com.thefiresonthebird.freedomweather.data.WeatherUpdateHelper(this@MainActivity)
-                    val success = weatherUpdateHelper.updateWeather(
+                    userPreferencesRepository.saveLocation(
+                        locationName = address,
                         latitude = location.latitude,
-                        longitude = location.longitude,
-                        locationName = address
+                        longitude = location.longitude
                     )
-                    
-                    if (success) {
-                        Log.d(TAG, "getCurrentLocation: Weather update successful")
-                    } else {
-                        Log.w(TAG, "getCurrentLocation: Weather update failed")
-                    }
-                    isLoading = false
-                    stateUpdateTrigger++
                 }
+                updateWeather(location.latitude, location.longitude)
+                stateUpdateTrigger++
             },
             onError = { error ->
                 currentLocation = error
@@ -314,38 +302,59 @@ class MainActivity : ComponentActivity() {
         )
     }
     
+    // Fetch weather data for location
+    private fun updateWeather(latitude: Double, longitude: Double) {
+        lifecycleScope.launch {
+            Log.i(TAG, "updateWeather: Fetching weather data for $latitude, $longitude ($currentLocation)")
+            val weatherUpdateHelper = com.thefiresonthebird.freedomweather.data.WeatherUpdateHelper(this@MainActivity)
+            val success = weatherUpdateHelper.updateWeather(
+                latitude = latitude,
+                longitude = longitude,
+                locationName = currentLocation
+            )
+                
+            if (success) {
+                Log.i(TAG, "updateWeather: Weather update successful")
+            } else {
+                Log.w(TAG, "updateWeather: Weather update failed")
+            }
+            isLoading = false
+            stateUpdateTrigger++
+        }
+    } 
+    
     // Method to refresh location (can be called from UI if needed)
-    fun refreshLocation() {
-        Log.d(TAG, "refreshLocation: Refreshing location")
-        currentLocation = "Getting location..."
+    fun manualRefresh() {
+        Log.i(TAG, "manualRefresh: Refreshing data")
         isLoading = true
         stateUpdateTrigger++
-        getCurrentLocation()
+
+        lifecycleScope.launch {
+            Log.d(TAG, "manualRefresh: Fetching preferences")
+            val preferences = userPreferencesRepository.userPreferencesFlow.first()
+            
+            val currentLastUpdatedLocation = preferences.lastUpdatedLocation
+            val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(currentLastUpdatedLocation))
+            val currentLat = preferences.lastLatitude
+            val currentLong = preferences.lastLongitude
+            Log.i(TAG, "manualRefresh: Loaded cached preferences - Loc: ${preferences.lastLocationName}, LastFetched: $time")
+
+            val isStale = System.currentTimeMillis() - currentLastUpdatedLocation > 60 * 60 * 1000
+
+            if (isStale) {
+                Log.i(TAG, "manualRefresh: Location last updated more than 1 hour ago, updating location and weather")
+                getCurrentLocationWeather()
+            } else {
+                Log.i(TAG, "manualRefresh: Location last updated less than 1 hour ago, updating weather with cached location")
+                updateWeather(currentLat, currentLong)
+            }
+        }
     }
     
     // Method to check if location services are available
     fun isLocationServicesAvailable(): Boolean {
         return locationService.isLocationServicesAvailable()
     }
-
-//    private fun scheduleWeatherUpdates() {
-//        Log.d(TAG, "scheduleWeatherUpdates: Scheduling periodic weather updates")
-//        val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.thefiresonthebird.freedomweather.workers.WeatherWorker>(
-//            15, java.util.concurrent.TimeUnit.MINUTES
-//        )
-//            .setConstraints(
-//                androidx.work.Constraints.Builder()
-//                    .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
-//                    .build()
-//            )
-//            .build()
-//
-//        androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
-//            "WeatherUpdateWork",
-//            androidx.work.ExistingPeriodicWorkPolicy.KEEP,
-//            workRequest
-//        )
-//    }
 }
 
 @Composable
@@ -365,7 +374,7 @@ fun WearApp(
     onTemperatureChanged: (Double, Double) -> Unit,
     onRefresh: () -> Unit
 ) {
-    Log.d(TAG, "WearApp: Composable function called with temperature: $celsiusTemp")
+    Log.i(TAG, "WearApp: Composable function called with temperature: $celsiusTemp")
 
     FreedomWeatherTheme {
         Box(

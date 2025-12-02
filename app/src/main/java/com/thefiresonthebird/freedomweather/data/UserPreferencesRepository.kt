@@ -22,6 +22,7 @@ class UserPreferencesRepository(private val context: Context) {
         val LAST_CONDITION_ICON = stringPreferencesKey("last_condition_icon")
         val LAST_CONDITION_TEXT = stringPreferencesKey("last_condition_text")
         val LAST_UPDATED = longPreferencesKey("last_updated")
+        val LAST_UPDATED_LOCATION = longPreferencesKey("last_updated_location")
     }
 
     val userPreferencesFlow: Flow<UserPreferences> = context.dataStore.data
@@ -36,7 +37,8 @@ class UserPreferencesRepository(private val context: Context) {
                 lastMaxTemp = preferences[LAST_MAX_TEMP] ?: 25.0,
                 lastConditionIcon = preferences[LAST_CONDITION_ICON] ?: "01d",
                 lastConditionText = preferences[LAST_CONDITION_TEXT] ?: "Unknown",
-                lastUpdated = preferences[LAST_UPDATED] ?: 0L
+                lastUpdated = preferences[LAST_UPDATED] ?: 0L,
+                lastUpdatedLocation = preferences[LAST_UPDATED_LOCATION] ?: 0L
             )
         }
 
@@ -64,6 +66,19 @@ class UserPreferencesRepository(private val context: Context) {
             preferences[LAST_UPDATED] = System.currentTimeMillis()
         }
     }
+
+    suspend fun saveLocation(
+        locationName: String,
+        latitude: Double,
+        longitude: Double,
+    ) {
+        context.dataStore.edit { preferences ->
+            preferences[LAST_LOCATION_NAME] = locationName
+            preferences[LAST_LATITUDE] = latitude
+            preferences[LAST_LONGITUDE] = longitude
+            preferences[LAST_UPDATED_LOCATION] = System.currentTimeMillis()
+        }
+    }
 }
 
 data class UserPreferences(
@@ -76,5 +91,6 @@ data class UserPreferences(
     val lastMaxTemp: Double,
     val lastConditionIcon: String,
     val lastConditionText: String,
-    val lastUpdated: Long
+    val lastUpdated: Long,
+    val lastUpdatedLocation: Long
 )
