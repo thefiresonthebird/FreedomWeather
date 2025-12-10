@@ -50,18 +50,13 @@ class WeatherTileService : TileService() {
                 val conditionText = preferences.lastConditionText
                 val lastUpdated = preferences.lastUpdated
 
+
+                val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastUpdated))
+                Log.d(TAG, "Last updated: $time")
+                
                 // Check if data is stale (older than 5 minutes)
                 // If stale, trigger update and show loading state
                 val isStale = System.currentTimeMillis() - lastUpdated > 300000
-                
-                Log.d(TAG, "onTileRequest: isStale: $isStale")
-                Log.d(TAG, "onTileRequest: Condition icon code: $conditionIcon")
-                Log.d(TAG, "onTileRequest: Location: $location")
-                Log.d(TAG, "onTileRequest: Temperature C: $tempC")
-                Log.d(TAG, "onTileRequest: Temperature F: $tempF")
-                Log.d(TAG, "onTileRequest: Condition text: $conditionText")
-                val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(lastUpdated))
-                Log.d(TAG, "onTileRequest: Last updated: $time")
                 
                 if (isStale) {
                     Log.i(TAG, "onTileRequest: Data is stale, triggering background weather update")
@@ -87,7 +82,7 @@ class WeatherTileService : TileService() {
                 Log.i(TAG, "onTileRequest: Building tile")
                 val tile = TileBuilders.Tile.Builder()
                     .setResourcesVersion("2")
-                    .setFreshnessIntervalMillis(15 * 60 * 1000L) // tile will refresh every 15 minutes
+                    //.setFreshnessIntervalMillis(15 * 60 * 1000L) // tile will refresh every 15 minutes
                     .setTileTimeline(
                         TimelineBuilders.Timeline.Builder()
                             .addTimelineEntry(

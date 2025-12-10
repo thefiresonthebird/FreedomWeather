@@ -15,13 +15,13 @@ class WeatherWorker(
     private val weatherUpdateHelper = WeatherUpdateHelper(context)
 
     override suspend fun doWork(): Result {
-        Log.d(TAG, "doWork: Starting background weather update")
+        Log.i(TAG, "Starting background weather update")
 
         return if (weatherUpdateHelper.updateWeather()) {
-            Log.d(TAG, "doWork: Weather update successful")
+            Log.i(TAG, "Weather update successful")
             Result.success()
         } else {
-            Log.e(TAG, "doWork: Weather update failed")
+            Log.e(TAG, "Weather update failed")
             Result.retry()
         }
     }

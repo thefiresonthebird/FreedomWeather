@@ -17,7 +17,7 @@ class WeatherUpdateHelper(private val context: Context) {
         longitude: Double? = null,
         locationName: String? = null
     ): Boolean {
-        Log.d(TAG, "updateWeather: Starting weather update")
+        Log.i(TAG, "updateWeather: Starting weather update")
 
         return try {
             val finalLatitude: Double
@@ -44,11 +44,11 @@ class WeatherUpdateHelper(private val context: Context) {
                 return false
             }
 
-            Log.d(TAG, "updateWeather: Fetching weather for $finalLocationName ($finalLatitude, $finalLongitude)")
+            Log.i(TAG, "updateWeather: Fetching weather for $finalLocationName ($finalLatitude, $finalLongitude)")
             val weather = weatherRepository.getCurrentWeather(finalLatitude, finalLongitude)
 
             if (weather != null) {
-                Log.d(TAG, "updateWeather: Weather fetched successfully: ${weather.main.temp}°C")
+                Log.i(TAG, "updateWeather: Weather fetched successfully: ${weather.main.temp}°C")
                 
                 userPreferencesRepository.saveWeather(
                     locationName = finalLocationName,
@@ -65,8 +65,15 @@ class WeatherUpdateHelper(private val context: Context) {
                 // Request tile update
                 TileService.getUpdater(context)
                     .requestUpdate(WeatherTileService::class.java)
+
+                Log.d(TAG, "Location: $finalLocationName")
+                Log.d(TAG, "Condition icon code: ${weather.weather.firstOrNull()?.icon ?: "01d"}")
+                Log.d(TAG, "Condition text: ${weather.weather.firstOrNull()?.main ?: "Unknown"}")
+                Log.d(TAG, "Temperature C: ${weather.main.temp}")
+                Log.d(TAG, "Temperature F: ${(weather.main.temp * 9/5) + 32}")
+
                 
-                Log.d(TAG, "updateWeather: Weather saved and tile update requested")
+                Log.i(TAG, "updateWeather: Weather saved and tile update requested")
                 true
             } else {
                 Log.e(TAG, "updateWeather: Failed to fetch weather")

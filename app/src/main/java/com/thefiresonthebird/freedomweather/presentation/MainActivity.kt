@@ -117,6 +117,9 @@ class MainActivity : ComponentActivity() {
         
         checkLocationPermissions()
 
+        // Schedule background updates
+        scheduleWeatherUpdates()
+
         setContent {
             Log.i(TAG, "onCreate: Setting up Compose content")
             
@@ -164,7 +167,7 @@ class MainActivity : ComponentActivity() {
     
     override fun onResume() {
         super.onResume()
-        Log.i(TAG, "onResume: Activity resumed, checking for rotary input and refreshing weather")
+        Log.i(TAG, "onResume: Activity resumed")
         
         // Refresh weather data if permissions are granted
         if (::locationService.isInitialized && locationService.hasLocationPermissions()) {
@@ -355,6 +358,25 @@ class MainActivity : ComponentActivity() {
     fun isLocationServicesAvailable(): Boolean {
         return locationService.isLocationServicesAvailable()
     }
+
+    private fun scheduleWeatherUpdates() {
+       Log.d(TAG, "scheduleWeatherUpdates: Scheduling periodic weather updates")
+       val workRequest = androidx.work.PeriodicWorkRequestBuilder<com.thefiresonthebird.freedomweather.workers.WeatherWorker>(
+           15, java.util.concurrent.TimeUnit.MINUTES // Set refresh period to 15 minutes
+       )
+           .setConstraints(
+               androidx.work.Constraints.Builder()
+                   .setRequiredNetworkType(androidx.work.NetworkType.CONNECTED)
+                   .build()
+           )
+           .build()
+
+       androidx.work.WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+           "WeatherUpdateWork",
+           androidx.work.ExistingPeriodicWorkPolicy.KEEP,
+           workRequest
+       )
+   }
 }
 
 @Composable
